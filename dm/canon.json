@@ -1,0 +1,146 @@
+{
+  "campaign": {
+    "name": "Ruins of Greayhwak",
+    "tone": "aventura oscura e inmersiva basada en el módulo de AD&D 'Expedition to the Ruins of Greyhawk'",
+    "progression_table": {
+      "1": 0, "2": 300, "3": 900, "4": 2700, "5": 6500, "6": 14000, "7": 23000, "8": 34000, "9": 48000, "10": 64000, "11": 85000, "12": 100000, "13": 120000, "14": 140000, "15": 165000,
+  "16": 195000, "17": 225000, "18": 265000, "19": 305000, "20": 355000
+    },
+    "style_rules": {
+      "no_spoilers": true,
+      "no_room_numbers": true,
+      "no_meta_module": true
+    }
+  },
+  "party": {
+    "name": "Los Irregulares",
+    "members": [
+      {
+        "name": "Myrmyr Lash",
+        "race": "Wood Elf",
+        "total_level": 8,
+        "xp": { "current": 34000, "next_level": 48000 },
+        "prof_bonus": 3,
+        "hp": 64, "max_hp": 64, "ac": 20,
+        "classes": [
+          { "name": "Ranger", "subclass": "Gloom Stalker", "level": 5 },
+          { "name": "Fighter", "subclass": "Battle Master", "level": 3 }
+        ],
+        "abilities": { "str": 10, "dex": 20, "con": 14, "int": 10, "wis": 14, "cha": 10 },
+        "features": [
+          "Fey Ancestry", "Mask of the Wild", "Favored Enemy (Undead)", "Natural Explorer", 
+          "Dread Ambusher", "Umbral Sight", "Extra Attack", "Action Surge", "Second Wind",
+          "Sharpshooter (Feat)", "Archery Style", "Superior Technique Style",
+          "Maneuvers (4d8): Precision, Trip, Menacing"
+        ],
+        "inventory": [
+          { "id": "longbow_plus_2", "name": "Arco Largo +2", "qty": 1, "magic": true, "bonus": 2, "equipped": true , "extra_damage": [ { "dice": "1d6", "type": "force" } ], "tags": [ "extra_force_1d6" ]},
+          { "id": "bracers_of_archery", "name": "Bracers of Archery (+2 ataque con arco)", "qty": 1, "magic": true, "equipped": true, "attack_bonus": 2, "attack_bonus_filter": { "weapon_type": "bow" } },
+          { "id": "studded_leather_plus_1", "name": "Cuero Tachonado +1", "qty": 1, "magic": true, "bonus": 1, "equipped": true },
+          { "id": "cloak_elvenkind", "name": "Capa de Elvenkind +5 (Stealth)", "qty": 1, "magic": true, "equipped": true, "skill_bonus": { "stealth": 5 } },
+          { "id": "ring_protection", "name": "Anillo de Protección +1", "qty": 1, "magic": true, "equipped": true, "ac_bonus": 1, "save_bonus": 1 },
+          { "id": "shortsword", "name": "Espada Corta", "qty": 1 },
+          { "id": "arrows", "name": "Flechas", "qty": 60 }
+        ],
+        "spell_slots": { "1": { "total": 4, "used": 0 }, "2": { "total": 2, "used": 0 } }
+      },
+      {
+        "name": "Brog la Roca",
+        "race": "Mountain Dwarf",
+        "total_level": 8,
+        "xp": { "current": 34000, "next_level": 48000 },
+        "prof_bonus": 3,
+        "hp": 76, "max_hp": 76, "ac": 20,
+        "classes": [{ "name": "Fighter", "subclass": "Battle Master", "level": 8 }],
+        "abilities": { "str": 20, "dex": 12, "con": 16, "int": 10, "wis": 12, "cha": 10 },
+        "features": [
+          "Dwarven Resilience", "Dwarven Armor Training", "GWF Style", "Second Wind", "Action Surge",
+          "Extra Attack", "Know Your Enemy", "GWM (Feat)", "PAM (Feat)", "Sentinel (Feat)",
+          "Maneuvers (5d8): Precision, Trip, Menacing, Riposte"
+        ],
+        "inventory": [
+          { "id": "halberd_plus_2", "name": "Alabarda +2", "qty": 1, "magic": true, "bonus": 2, "equipped": true, "extra_damage": [ { "dice": "1d6", "type": "fire" } ], "tags": [ "extra_fire_1d6" ] },
+          { "id": "plate_mail_plus_1", "name": "Armadura de Placas +1", "qty": 1, "magic": true, "bonus": 1, "equipped": true },
+          { "id": "ring_protection", "name": "Anillo de Protección +1", "qty": 1, "magic": true, "equipped": true, "ac_bonus": 1, "save_bonus": 1 }
+        ]
+      },
+      {
+        "name": "Thrun el Yunque",
+        "race": "Mountain Dwarf",
+        "total_level": 8,
+        "xp": { "current": 34000, "next_level": 48000 },
+        "prof_bonus": 3,
+        "hp": 75, "max_hp": 75, "ac": 22,
+        "classes": [{ "name": "Cleric", "subclass": "Twilight Domain", "level": 8 }],
+        "abilities": { "str": 14, "dex": 10, "con": 16, "int": 10, "wis": 20, "cha": 8 },
+        "features": [
+          "Eyes of Night (300ft)", "Vigilant Blessing", "Twilight Sanctuary", "Steps of Night (Fly)",
+          "Destroy Undead (CR 1)", "Divine Strike (1d8)", "War Caster (Feat)", "Sentinel (Feat)"
+        ],
+        "inventory": [
+          { "id": "warhammer_plus_1", "name": "Martillo de Guerra +1", "qty": 1, "magic": true, "bonus": 1, "equipped": true },
+          { "id": "full_plate_plus_1", "name": "Placas Completas +1", "qty": 1, "magic": true, "bonus": 1, "equipped": true },
+          { "id": "shield_plus_1", "name": "Escudo Mediano +1", "qty": 1, "magic": true, "bonus": 1, "equipped": true },
+          { "id": "holy_symbol_pelor_plus_1", "name": "Símbolo Sagrado de Pelor +1 (Spell Attack)", "qty": 1, "magic": true, "bonus": 1, "equipped": true },
+          { "id": "ring_protection", "name": "Anillo de Protección +1", "qty": 1, "magic": true, "equipped": true, "ac_bonus": 1, "save_bonus": 1 }
+        ],
+        "spell_slots": { "1": 4, "2": 3, "3": 3, "4": 2 }
+      },
+      {
+        "name": "Trip",
+        "race": "Forest Gnome",
+        "total_level": 8,
+        "xp": { "current": 34000, "next_level": 48000 },
+        "prof_bonus": 3,
+        "hp": 50, "max_hp": 50, "ac": 15,
+        "classes": [{ "name": "Wizard", "subclass": "Evocation", "level": 8 }],
+        "abilities": { "str": 10, "dex": 14, "con": 14, "int": 20, "wis": 12, "cha": 8 },
+        "features": [
+          "Gnome Cunning", "Natural Illusionist", "Arcane Recovery", "Sculpt Spells", 
+          "Potent Cantrip", "War Caster (Feat)", "ASI: INT +2"
+        ],
+        "inventory": [
+          { "id": "staff_plus_2", "name": "Bastón de Poder +2 (CD/Attack)", "qty": 1, "magic": true, "bonus": 2, "equipped": true },
+          { "id": "bracers_defense", "name": "Brazales de Defensa +2 ac", "qty": 1, "magic": true, "equipped": true, "ac_bonus": 2 },
+          { "id": "ring_protection", "name": "Anillo de Protección +1", "qty": 1, "magic": true, "equipped": true, "ac_bonus": 1, "save_bonus": 1 }
+        ],
+        "spell_slots": { "1": 4, "2": 3, "3": 3, "4": 2 }
+      },
+      {
+        "name": "Kaelen el Sombrío",
+        "race": "Lightfoot Halfling",
+        "total_level": 8,
+        "xp": { "current": 34000, "next_level": 48000 },
+        "prof_bonus": 3,
+        "hp": 62, "max_hp": 62, "ac": 19,
+        "classes": [
+          { "name": "Rogue", "subclass": "Swashbuckler", "level": 5 },
+          { "name": "Fighter", "subclass": "Battle Master", "level": 3 }
+        ],
+        "abilities": { "str": 8, "dex": 20, "con": 14, "int": 10, "wis": 12, "cha": 14 },
+        "features": [
+          "Lucky", "Brave", "Naturally Stealthy", "Sneak Attack (3d6)", "Cunning Action",
+          "Uncanny Dodge", "Fancy Footwork", "Rakish Audacity", "Dueling Style",
+          "Maneuvers (4d8): Precision, Trip, Menacing"
+        ],
+        "inventory": [
+          { "id": "rapier_plus_2", "name": "Estoques +2", "qty": 1, "magic": true, "bonus": 2, "equipped": true, "extra_damage": [ { "dice": "1d6", "type": "radiant" } ], "tags": [ "extra_radiant_1d6" ] },
+          { "id": "studded_leather_plus_1", "name": "Cuero Tachonado +1", "qty": 1, "magic": true, "bonus": 1, "equipped": true },
+          { "id": "ring_protection", "name": "Anillo de Protección +1", "qty": 1, "magic": true, "equipped": true, "ac_bonus": 1, "save_bonus": 1 },
+          {"id": "ring_of_spell_storing","name":"Ring of Spell Storing","qty":1,"magic":true,"equipped":true,"spell_storage":{"capacity_levels":9,"stored":[{"name":"Counterspell","level":3},{"name":"Misty Step","level":2},{"name":"Faerie Fire","level":1},{"name":"Shield","level":1},{"name":"Darkness","level":2}]}},
+          { "id": "thieves_tools_plus_3", "name": "Herramientas de Ladrón +3", "qty": 1, "magic": true, "equipped": false, "skill_bonus": { "thieves_tools": 3 } },
+          { "id": "cloak_elvenkind", "name": "Capa de Elvenkind +5 (Stealth)", "qty": 1, "magic": true, "equipped": true, "skill_bonus": { "stealth": 5 } },
+          { "id": "shortbow", "name": "Arco Corto", "qty": 1 },
+          { "id": "arrows", "name": "Flechas", "qty": 40 }
+        ]
+      }
+    ]
+  },
+  "inventory": { "party_pool": [], "assigned": {} },
+  "session": {
+    "recap": "",
+    "current_scene": "llegada",
+    "location": "Ciudadela del Círculo",
+    "open_threads": ["Investigar el destino de los Ocho"]
+  }
+}

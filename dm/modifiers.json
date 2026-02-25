@@ -1,0 +1,26 @@
+[
+  {
+    "id": "archery_style",
+    "when": "attack",
+    "if": { "attack_type": "ranged", "actor_feature_contains": "archery style" },
+    "apply": { "to_hit": 2, "damage_bonus": 0, "note": "Archery Style (+2 to hit)" }
+  },
+  {
+    "id": "dueling_style",
+    "when": "attack",
+    "if": { "attack_type": "melee", "actor_feature_contains": "dueling style", "weapon_lacks": "two_handed" },
+    "apply": { "to_hit": 0, "damage_bonus": 2, "note": "Dueling Style (+2 dmg)" }
+  },
+  {
+    "id": "sharpshooter_power_shot",
+    "when": "attack",
+    "if": { "attack_type": "ranged", "mode_includes": "sharpshooter" },
+    "apply": { "to_hit": -5, "damage_bonus": 10, "note": "Sharpshooter (-5/+10)" }
+  },
+  {
+    "id": "gwm_power_attack",
+    "when": "attack",
+    "if": { "attack_type": "melee", "weapon_has": "heavy", "mode_includes": "gwm" },
+    "apply": { "to_hit": -5, "damage_bonus": 10, "note": "GWM (-5/+10)" }
+  }
+]

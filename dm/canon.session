@@ -1,0 +1,10 @@
+{
+  "module": {
+    "id": "vecna_lives",
+    "progress": {
+      "chapter": "prologue",
+      "scene": "opening",
+      "flags": ["circle_of_eight_done"]
+    }
+  }
+}

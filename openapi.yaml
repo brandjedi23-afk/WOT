@@ -1,0 +1,254 @@
+openapi: 3.1.0
+info:
+  title: WOT DM Agent API
+  version: "1.2.2"
+
+servers:
+  - url: https://wot-production-b0d5.up.railway.app
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-KEY
+
+  schemas:
+    TurnRequest:
+      type: object
+      required: [session_id, text]
+      properties:
+        session_id:
+          type: string
+        text:
+          type: string
+
+    TurnResponse:
+      type: object
+      required: [session_id, output]
+      properties:
+        session_id:
+          type: string
+        output:
+          type: string
+
+    RollReq:
+      type: object
+      required: [expr]
+      properties:
+        expr: { type: string }
+        session_id: { type: string }
+        label: { type: string }
+
+    RollResp:
+      type: object
+      required: [total, detail, text, raw]
+      properties:
+        total: { type: integer }
+        detail: { type: string }
+        text: { type: string }
+        raw:
+          type: object
+          additionalProperties: true
+
+    SkillCheckReq:
+      type: object
+      required: [bonus, dc]
+      properties:
+        bonus: { type: integer }
+        dc: { type: integer }
+        mode:
+          type: string
+          enum: [normal, adv, dis]
+          default: normal
+        session_id: { type: string }
+        label: { type: string }
+
+    SkillCheckResp:
+      type: object
+      required: [ok, total, text, raw]
+      properties:
+        ok: { type: boolean }
+        total: { type: integer }
+        text: { type: string }
+        raw:
+          type: object
+          additionalProperties: true
+
+    AttackReq:
+      type: object
+      required: [attack_bonus, target_ac]
+      properties:
+        attack_bonus: { type: integer }
+        target_ac: { type: integer }
+        mode:
+          type: string
+          enum: [normal, adv, dis]
+          default: normal
+        session_id: { type: string }
+        label: { type: string }
+        damage_expr: { type: string }
+
+    AttackResp:
+      type: object
+      required: [hit, crit, total, text, raw]
+      properties:
+        hit: { type: boolean }
+        crit: { type: boolean }
+        total: { type: integer }
+        text: { type: string }
+        raw:
+          type: object
+          additionalProperties: true
+        damage_total: { type: integer }
+        damage_detail: { type: string }
+        damage_raw:
+          type: object
+          additionalProperties: true
+
+    SessionDumpResp:
+      type: object
+      required: [ok, session_id]
+      properties:
+        ok: { type: boolean }
+        session_id: { type: string }
+        history:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        scene:
+          type: object
+          additionalProperties: true
+        flags:
+          type: object
+          additionalProperties: true
+        module_progress:
+          type: object
+          additionalProperties: true
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /health:
+    get:
+      operationId: health
+      summary: Health check
+      security: []
+      responses:
+        "200":
+          description: OK
+
+  /config:
+    get:
+      operationId: config
+      summary: Runtime config (safe)
+      security: []
+      responses:
+        "200":
+          description: OK
+
+  /turn:
+    post:
+      operationId: dm_turn
+      summary: Run one WOT DM agent turn
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TurnRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TurnResponse"
+
+  /roll:
+    post:
+      operationId: roll
+      summary: Roll a dice expression (e.g., 2d6+3)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RollReq"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RollResp"
+
+  /skill_check:
+    post:
+      operationId: skill_check
+      summary: Skill/ability check with bonus vs DC (supports adv/dis)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SkillCheckReq"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SkillCheckResp"
+
+  /attack:
+    post:
+      operationId: attack
+      summary: Attack roll vs target AC (supports adv/dis); optional damage roll
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttackReq"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttackResp"
+
+  /session/reset/{session_id}:
+    post:
+      operationId: reset_session
+      summary: Reset a session
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+
+  /session/{session_id}:
+    get:
+      operationId: get_session
+      summary: Dump stored session (history/scene/flags/module_progress)
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionDumpResp"
