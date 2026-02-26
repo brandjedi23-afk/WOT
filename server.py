@@ -23,10 +23,19 @@ from wot_output import TurnContext, format_turn_output
 ROOT = Path(__file__).resolve().parent
 load_dotenv(dotenv_path=ROOT / ".env", override=False)
 
+print("[BOOT] starting server.py")
+print("[BOOT] python:", __import__("sys").version)
+print("[BOOT] PORT env:", os.getenv("PORT"))
+print("[BOOT] DM token set:", bool((os.getenv("DM_API_TOKEN") or "").strip()))
+print("[BOOT] sessions dir:", str(SESSIONS_DIR))
+print("[BOOT] agent import error:", AGENT_IMPORT_ERROR)
+
 SESSIONS_DIR = Path(os.getenv("SESSIONS_DIR") or (ROOT / "data" / "sessions"))
 SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
 
-PUBLIC_PATHS = {"/", "/favicon.ico", "/health", "/config", "/docs", "/openapi.json", "/redoc", "/routes"}
+# PUBLIC paths (exactos) + prefijos (robustos con root_path)
+PUBLIC_PATHS = {"/", "/favicon.ico"}
+PUBLIC_PREFIXES = ("/health", "/config", "/docs", "/openapi.json", "/redoc", "/routes")
 
 def _get_api_token() -> str:
     return (os.getenv("DM_API_TOKEN") or "").strip()
@@ -70,16 +79,37 @@ app.add_middleware(
 
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
-    path = request.url.path
+    path = request.url.path or "/"
 
-    if path in PUBLIC_PATHS:
+    # Soporta root_path (si FastAPI/Proxy lo usa)
+    root_path = getattr(request.scope, "get", lambda k, d=None: d)("root_path", "") or request.scope.get("root_path", "")
+    if root_path and path.startswith(root_path):
+        path_no_root = path[len(root_path):] or "/"
+    else:
+        path_no_root = path
+
+    # Normaliza barra final
+    if path_no_root != "/" and path_no_root.endswith("/"):
+        path_no_root = path_no_root[:-1]
+
+    # Allowlist
+    if path_no_root in PUBLIC_PATHS or path_no_root.startswith(PUBLIC_PREFIXES):
         return await call_next(request)
 
-    token = _get_api_token()
+    token = (os.getenv("DM_API_TOKEN") or "").strip()
     if not token:
         return JSONResponse(status_code=503, content={"detail": "Servidor sin DM_API_TOKEN configurado"})
 
-    if not _auth_ok(request, token):
+    auth = request.headers.get("authorization") or ""
+    xkey = request.headers.get("x-api-key") or ""
+
+    ok = False
+    if auth.lower().startswith("bearer "):
+        ok = auth.split(" ", 1)[1].strip() == token
+    elif xkey:
+        ok = xkey.strip() == token
+
+    if not ok:
         return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
 
     return await call_next(request)
