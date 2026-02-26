@@ -27,15 +27,13 @@ SESSIONS_DIR = Path(os.getenv("SESSIONS_DIR") or (ROOT / "data" / "sessions"))
 SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
 
 # -----------------------------
-# BOOT logs (después de SESSIONS_DIR)
+# BOOT logs (solo cosas ya definidas)
 # -----------------------------
-print("[BOOT] sessions dir:", str(globals().get("SESSIONS_DIR", "<not-defined-yet>")))
 print("[BOOT] starting server.py")
 print("[BOOT] python:", __import__("sys").version)
 print("[BOOT] PORT env:", os.getenv("PORT"))
 print("[BOOT] DM token set:", bool((os.getenv("DM_API_TOKEN") or "").strip()))
 print("[BOOT] sessions dir:", str(SESSIONS_DIR))
-print("[BOOT] agent import error:", AGENT_IMPORT_ERROR)  # <-- SOLO después de definirlo
 
 # -----------------------------
 # PUBLIC paths (exactos) + prefijos (robustos con root_path)
@@ -70,6 +68,9 @@ try:
 except Exception as e:
     AGENT_IMPORT_ERROR = str(e)
 
+print("[BOOT] agent import error:", AGENT_IMPORT_ERROR)
+print("[BOOT] agent available:", bool(AgentState and run_agent_turn))
+
 # -----------------------------
 # FastAPI app
 # -----------------------------
@@ -88,7 +89,7 @@ async def auth_middleware(request: Request, call_next):
     path = request.url.path or "/"
 
     # Soporta root_path (si FastAPI/Proxy lo usa)
-    root_path = getattr(request.scope, "get", lambda k, d=None: d)("root_path", "") or request.scope.get("root_path", "")
+    root_path = request.scope.get("root_path", "") or ""
     if root_path and path.startswith(root_path):
         path_no_root = path[len(root_path):] or "/"
     else:
