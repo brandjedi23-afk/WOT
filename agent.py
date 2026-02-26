@@ -16,12 +16,25 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 # =========================================================
-# Setup (ROOT -> .env -> client)
+# Setup (ROOT -> .env -> client (lazy))
 # =========================================================
 ROOT = Path(__file__).resolve().parent
 load_dotenv(dotenv_path=ROOT / ".env", override=False)
 
-client = OpenAI()  # lee OPENAI_API_KEY del entorno
+_client: Optional[OpenAI] = None
+
+def _get_client() -> OpenAI:
+    """
+    Lazy init: NO crea el cliente en import-time.
+    Evita que el deployment crashee si OPENAI_API_KEY no está configurada.
+    """
+    global _client
+    if _client is None:
+        api_key = (os.getenv("OPENAI_API_KEY") or "").strip()
+        if not api_key:
+            raise RuntimeError("Falta OPENAI_API_KEY (ponla en variables de entorno).")
+        _client = OpenAI(api_key=api_key)
+    return _client
 
 def _require_model() -> str:
     m = (os.getenv("OPENAI_MODEL") or "").strip()
@@ -4751,12 +4764,27 @@ def _classify_openai_error(e: Exception) -> str:
 def _sleep_backoff(attempt: int) -> None:
     time.sleep(2 * (attempt + 1))
 
+def _require_client():
+    """Returns an OpenAI client instance. Requires OPENAI_API_KEY environment variable."""
+    import os
+    from openai import OpenAI
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY environment variable not set")
+    return OpenAI(api_key=api_key)
+
+def _require_model() -> str:
+    """Returns the model name to use (default: gpt-4-turbo)."""
+    import os
+    return os.getenv("OPENAI_MODEL", "gpt-4-turbo")
+
 def _call_chat_with_retries(messages: List[dict], *, max_attempts: int = 4):
     last_err: Optional[Exception] = None
+    c = _require_client()
 
     for attempt in range(max_attempts):
         try:
-            return client.chat.completions.create(
+            return c.chat.completions.create(
                 model=_require_model(),
                 messages=messages,
                 tools=CHAT_TOOLS,
@@ -4882,6 +4910,7 @@ def _call_planner_json(user_text: str, canon: dict) -> Optional[dict]:
     """
     Llama al modelo para generar SOLO JSON {actions:[...]}.
     """
+    c = _require_client()
     snap = _canon_snapshot_for_planner(canon)
     messages = [
         {"role": "system", "content": PLANNER_SYSTEM.strip()},
@@ -4890,14 +4919,14 @@ def _call_planner_json(user_text: str, canon: dict) -> Optional[dict]:
 
     # Intento con response_format si la lib lo soporta; fallback si no.
     try:
-        resp = client.chat.completions.create(
+        resp = c.chat.completions.create(
             model=_require_model(),
             messages=messages,
             temperature=0.1,
             response_format={"type": "json_object"},
         )
     except TypeError:
-        resp = client.chat.completions.create(
+        resp = c.chat.completions.create(
             model=_require_model(),
             messages=messages,
             temperature=0.1,
@@ -4949,6 +4978,7 @@ def _call_narrator_text(user_text: str, canon_after: dict, plan: dict, resolutio
     """
     El narrador devuelve SOLO narración (sin mecánica).
     """
+    c = _require_client()
     snap = _canon_snapshot_for_planner(canon_after, max_feats=6)
     messages = [
         {"role": "system", "content": NARRATOR_SYSTEM.strip()},
@@ -4962,7 +4992,7 @@ def _call_narrator_text(user_text: str, canon_after: dict, plan: dict, resolutio
     ]
 
     # 1er intento
-    resp = client.chat.completions.create(
+    resp = c.chat.completions.create(
         model=_require_model(),
         messages=messages,
         temperature=0.5,
@@ -4977,7 +5007,7 @@ def _call_narrator_text(user_text: str, canon_after: dict, plan: dict, resolutio
         "role": "system",
         "content": "SEGUNDO INTENTO: recuerda que está PROHIBIDO incluir números (0-9), totales, críticos explícitos o menús de opciones. Solo narración cualitativa + una pregunta final abierta."
     }]
-    resp2 = client.chat.completions.create(
+    resp2 = c.chat.completions.create(
         model=_require_model(),
         messages=messages2,
         temperature=0.2,

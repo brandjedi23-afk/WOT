@@ -6,6 +6,11 @@ from pathlib import Path
 from typing import Dict, Any, Optional, Literal, Tuple
 
 from dotenv import load_dotenv
+
+print("[BOOT] OPENAI_API_KEY set:", bool((os.getenv("OPENAI_API_KEY") or "").strip()),
+      "len=", len((os.getenv("OPENAI_API_KEY") or "").strip()))
+print("[BOOT] OPENAI_MODEL:", (os.getenv("OPENAI_MODEL") or "").strip() or "<unset>")
+
 from fastapi import FastAPI, HTTPException, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
