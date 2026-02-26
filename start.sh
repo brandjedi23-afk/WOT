@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "=== Althalus boot ==="
+echo "=== WOT boot ==="
 echo "PWD=$(pwd)"
 echo "PORT=${PORT:-<unset>}"
 echo "PYTHON=$(which python || true)"
