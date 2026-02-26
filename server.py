@@ -23,17 +23,23 @@ from wot_output import TurnContext, format_turn_output
 ROOT = Path(__file__).resolve().parent
 load_dotenv(dotenv_path=ROOT / ".env", override=False)
 
+SESSIONS_DIR = Path(os.getenv("SESSIONS_DIR") or (ROOT / "data" / "sessions"))
+SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
+
+# -----------------------------
+# BOOT logs (después de SESSIONS_DIR)
+# -----------------------------
+print("[BOOT] sessions dir:", str(globals().get("SESSIONS_DIR", "<not-defined-yet>")))
 print("[BOOT] starting server.py")
 print("[BOOT] python:", __import__("sys").version)
 print("[BOOT] PORT env:", os.getenv("PORT"))
 print("[BOOT] DM token set:", bool((os.getenv("DM_API_TOKEN") or "").strip()))
 print("[BOOT] sessions dir:", str(SESSIONS_DIR))
-print("[BOOT] agent import error:", AGENT_IMPORT_ERROR)
+print("[BOOT] agent import error:", AGENT_IMPORT_ERROR)  # <-- SOLO después de definirlo
 
-SESSIONS_DIR = Path(os.getenv("SESSIONS_DIR") or (ROOT / "data" / "sessions"))
-SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
-
+# -----------------------------
 # PUBLIC paths (exactos) + prefijos (robustos con root_path)
+# -----------------------------
 PUBLIC_PATHS = {"/", "/favicon.ico"}
 PUBLIC_PREFIXES = ("/health", "/config", "/docs", "/openapi.json", "/redoc", "/routes")
 
