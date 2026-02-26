@@ -11,7 +11,7 @@ components:
     ApiKeyAuth:
       type: apiKey
       in: header
-      name: X-API-KEY
+      name: X-API-Key
 
   schemas:
     TurnRequest:
@@ -66,10 +66,11 @@ components:
 
     SkillCheckResp:
       type: object
-      required: [ok, total, text, raw]
+      required: [success, total, dc, text, raw]
       properties:
-        ok: { type: boolean }
+        success: { type: boolean }
         total: { type: integer }
+        dc: { type: integer }
         text: { type: string }
         raw:
           type: object
@@ -108,7 +109,7 @@ components:
 
     SessionDumpResp:
       type: object
-      required: [ok, session_id]
+      required: [ok, session_id, history, scene, flags, module_progress, events]
       properties:
         ok: { type: boolean }
         session_id: { type: string }
@@ -126,6 +127,11 @@ components:
         module_progress:
           type: object
           additionalProperties: true
+        events:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
 
 security:
   - ApiKeyAuth: []
@@ -144,6 +150,15 @@ paths:
     get:
       operationId: config
       summary: Runtime config (safe)
+      security: []
+      responses:
+        "200":
+          description: OK
+
+  /routes:
+    get:
+      operationId: routes
+      summary: List API routes (debug)
       security: []
       responses:
         "200":
@@ -238,7 +253,7 @@ paths:
   /session/{session_id}:
     get:
       operationId: get_session
-      summary: Dump stored session (history/scene/flags/module_progress)
+      summary: Dump stored session (history/scene/flags/module_progress/events)
       parameters:
         - name: session_id
           in: path
