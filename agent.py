@@ -23,19 +23,6 @@ load_dotenv(dotenv_path=ROOT / ".env", override=False)
 
 _client: Optional[OpenAI] = None
 
-def _get_client() -> OpenAI:
-    """
-    Lazy init: NO crea el cliente en import-time.
-    Evita que el deployment crashee si OPENAI_API_KEY no está configurada.
-    """
-    global _client
-    if _client is None:
-        api_key = (os.getenv("OPENAI_API_KEY") or "").strip()
-        if not api_key:
-            raise RuntimeError("Falta OPENAI_API_KEY (ponla en variables de entorno).")
-        _client = OpenAI(api_key=api_key)
-    return _client
-
 def _require_model() -> str:
     m = (os.getenv("OPENAI_MODEL") or "").strip()
     if not m:
@@ -802,34 +789,40 @@ def _unique_enemy_instance_name(canon: dict, base_name: str) -> str:
             return candidate
         i += 1
 
-
 def _speed_to_int(speed_val: Any, default_speed: int = 30) -> int:
     """
-    Tu compendio trae speed a veces como dict:
+    El compendio trae speed a veces como dict:
       {"walk": 10, "swim": 40}
-    o a veces como int.
-    Aquí normalizamos a un entero usable (preferimos walk).
+    o a veces como int/str.
+    Normalizamos a un entero usable (preferimos walk).
     """
-    if isinstance(speed_val, dict):
-        if "walk" in speed_val:
-            try:
-                return int(speed_val.get("walk") or default_speed)
-            except Exception:
-                return default_speed
-        # si no hay walk, usamos el mayor valor numérico
-        vals = []
-        for v in speed_val.values():
-            try:
-                vals.append(int(v))
-            except Exception:
-                pass
-        return max(vals) if vals else default_speed
-
     try:
-        return int(speed_val)
+        # dict: preferimos walk; si no, el mayor valor numérico
+        if isinstance(speed_val, dict):
+            if "walk" in speed_val:
+                try:
+                    return int(speed_val.get("walk") or default_speed)
+                except Exception:
+                    return default_speed
+
+            vals: list[int] = []
+            for v in speed_val.values():
+                try:
+                    vals.append(int(v))
+                except Exception:
+                    pass
+            return max(vals) if vals else default_speed
+
+        # str: extraer primer número
+        if isinstance(speed_val, str):
+            m = re.search(r"(\d+)", speed_val)
+            return int(m.group(1)) if m else default_speed
+
+        # int/float/etc.
+        return int(speed_val) if speed_val else default_speed
+
     except Exception:
         return default_speed
-
 
 def _ensure_enemy_from_bestiary(canon: dict, target_name: str) -> Optional[Tuple[str, dict]]:
     """
@@ -882,8 +875,16 @@ def _ensure_enemy_from_bestiary(canon: dict, target_name: str) -> Optional[Tuple
 
 
 def _load_json_file(path: Path) -> Optional[dict]:
+    """
+    Carga un JSON desde disco de forma segura.
+    Devuelve dict/list según el archivo, o None si no existe o falla.
+    """
+    if not isinstance(path, Path):
+        path = Path(str(path))
+
     if not path.exists():
         return None
+
     try:
         with path.open("r", encoding="utf-8") as f:
             return json.load(f)
@@ -987,40 +988,6 @@ def _canon_mode_token(s: str) -> str:
     if s1 in _MODE_ALIASES:
         return _MODE_ALIASES[s1]
     # versión sin espacios/underscore
-    s2 = re.sub(r"[^a-z0-9]+", "", s0)
-    if s2 in _MODE_ALIASES:
-        return _MODE_ALIASES[s2]
-    return s0
-
-_MODE_ALIASES = {
-    "sharpshooter": "sharpshooter",
-    "sharp shooter": "sharpshooter",
-    "sharp_shooter": "sharpshooter",
-    "tirador de elite": "sharpshooter",
-    "tirador de élite": "sharpshooter",
-
-    "gwm": "gwm",
-    "great weapon master": "gwm",
-    "greatweaponmaster": "gwm",
-    "gran maestro de armas": "gwm",
-
-    "sneak_attack": "sneak_attack",
-    "sneak attack": "sneak_attack",
-    "ataque furtivo": "sneak_attack",
-
-    "dread_ambusher": "dread_ambusher",
-    "dread ambusher": "dread_ambusher",
-    "gloom stalker": "dread_ambusher",
-    "gloomstalker": "dread_ambusher",
-}
-
-def _canon_mode_token(s: str) -> str:
-    s0 = _norm(s)
-    if not s0:
-        return ""
-    s1 = re.sub(r"[\s\-]+", " ", s0).strip()
-    if s1 in _MODE_ALIASES:
-        return _MODE_ALIASES[s1]
     s2 = re.sub(r"[^a-z0-9]+", "", s0)
     if s2 in _MODE_ALIASES:
         return _MODE_ALIASES[s2]
@@ -4773,11 +4740,6 @@ def _require_client():
         raise RuntimeError("OPENAI_API_KEY environment variable not set")
     return OpenAI(api_key=api_key)
 
-def _require_model() -> str:
-    """Returns the model name to use (default: gpt-4-turbo)."""
-    import os
-    return os.getenv("OPENAI_MODEL", "gpt-4-turbo")
-
 def _call_chat_with_retries(messages: List[dict], *, max_attempts: int = 4):
     last_err: Optional[Exception] = None
     c = _require_client()
@@ -4918,6 +4880,13 @@ def _call_planner_json(user_text: str, canon: dict) -> Optional[dict]:
             response_format={"type": "json_object"},
         )
     except TypeError:
+        # librería/versión que no soporta response_format
+        resp = c.chat.completions.create(
+            model=_require_model(),
+            messages=messages,
+            temperature=0.1,
+        )
+    except Exception:
         resp = c.chat.completions.create(
             model=_require_model(),
             messages=messages,
@@ -4999,12 +4968,15 @@ def _call_narrator_text(user_text: str, canon_after: dict, plan: dict, resolutio
         "role": "system",
         "content": "SEGUNDO INTENTO: recuerda que está PROHIBIDO incluir números (0-9), totales, críticos explícitos o menús de opciones. Solo narración cualitativa + una pregunta final abierta."
     }]
-    resp2 = c.chat.completions.create(
-        model=_require_model(),
-        messages=messages2,
-        temperature=0.2,
-    )
-    txt2 = (resp2.choices[0].message.content or "").strip()
+    try:
+        resp2 = c.chat.completions.create(
+            model=_require_model(),
+            messages=messages2,
+            temperature=0.2,
+        )
+        txt2 = (resp2.choices[0].message.content or "").strip()
+    except Exception:
+        txt2 = txt
 
     # Si aun así no cumple, devolvemos una versión saneada (último recurso)
     if _narration_is_clean(txt2):
@@ -5487,40 +5459,70 @@ def run_agent_turn(user_text: str, state: AgentState) -> str:
         if not state.history or state.history[0].get("role") != "system":
             state.history.insert(0, _system_msg())
 
-        # --- FAST PATH (sin OpenAI) ---
-        t0 = (user_text or "").strip().upper()
+        user_text = _preprocess_user_text(user_text)
+        state.history.append(_user_msg(user_text))
 
-        if t0 in {"ESTADO", "STATUS"}:
-            # Dump rápido (sin LLM). Puedes enriquecer con canon_get si quieres.
+        # =========================================================
+        # FAST PATH: comandos de control (sin LLM)
+        # =========================================================
+        t0u = (user_text or "").strip().upper()
+
+        # --- ESTADO / STATUS ---
+        if t0u in {"ESTADO", "STATUS"}:
             st = tool_scene_status()
-            out = format_turn_output(
+            output = format_turn_output(
                 ctx=ctx,
                 interpretation="Estado de sesión solicitado (sin LLM).",
                 narration=st,
                 options=["AVANZA", "RESET"],
             )
-            state.history.append(_assistant_msg(out))
-            return out
+            state.history.append(_assistant_msg(output))
+            return output
 
-        if t0 == "RESET":
-            # Reset ligero de sesión: vacía history y escena; canon lo gestionas por tu endpoint /session/reset si prefieres.
+        # --- RESET ---
+        if t0u == "RESET":
+            # Reset ligero del state (persistencia por sesión)
             state.history = []
             state.scene = {"location": "", "current_scene": "", "recap": "", "open_threads": []}
             state.flags = {"debug_mechanics": True}
             state.module_progress = {"module_id": "", "chapter": "", "scene": "", "flags": []}
 
-            out = format_turn_output(
+            output = format_turn_output(
                 ctx=ctx,
                 interpretation="Sesión reiniciada (sin LLM).",
-                narration="OK. Estado en memoria de sesión reiniciado.",
+                narration="OK. Estado de sesión reiniciado.",
                 options=["AVANZA", "ESTADO"],
             )
-            state.history.append(_assistant_msg(out))
-            return out
+            state.history.append(_assistant_msg(output))
+            return output
 
-        user_text = _preprocess_user_text(user_text)
-        state.history.append(_user_msg(user_text))
+        # --- AVANZA (Opción A) ---
+        if t0u == "AVANZA":
+            canon_now = canon_load()
+            combat = (canon_now.get("combat", {}) or {})
 
+            # Si hay combate, dejamos que el pipeline normal lo gestione (planner / tools / etc.)
+            if not combat.get("active"):
+                st = tool_scene_status()
+                output = format_turn_output(
+                    ctx=ctx,
+                    interpretation="Avance de escena (sin combate).",
+                    narration=(
+                        f"{st}\n\n"
+                        "La escena progresa un paso sin entrar en combate: mantenéis el control del ritmo y la iniciativa.\n"
+                        "Dime una acción concreta (sigilo / social / táctica) y lo resuelvo con tiradas si aplica."
+                    ),
+                    options=[
+                        "SIGILO: aproximarse y escuchar",
+                        "SOCIAL: cubrirse con una excusa",
+                        "TÁCTICO: preparar posicionamiento / Silence",
+                        "ESTADO",
+                        "RESET",
+                    ],
+                )
+                state.history.append(_assistant_msg(output))
+                return output
+    
         # =========================================================
         # PIPELINE: PLAN -> EXECUTE -> NARRATE (para multi-acciones / combate)
         # =========================================================

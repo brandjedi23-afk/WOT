@@ -50,9 +50,9 @@ def _get_api_token() -> str:
     return (os.getenv("DM_API_TOKEN") or "").strip()
 
 def _auth_ok(request: Request, token: str) -> bool:
-    # Authorization: Bearer <token>  OR  X-API-Key: <token>
+    # Authorization: Bearer <token>  OR  X-API-KEY: <token>
     auth = request.headers.get("authorization") or ""
-    xkey = request.headers.get("x-api-key") or ""
+    xkey = request.headers.get("X-API-KEY") or ""
     if auth.lower().startswith("bearer "):
         return auth.split(" ", 1)[1].strip() == token
     if xkey:
@@ -113,7 +113,7 @@ async def auth_middleware(request: Request, call_next):
         return JSONResponse(status_code=503, content={"detail": "Servidor sin DM_API_TOKEN configurado"})
 
     auth = request.headers.get("authorization") or ""
-    xkey = request.headers.get("x-api-key") or ""
+    xkey = request.headers.get("X-API-KEY") or ""
 
     ok = False
     if auth.lower().startswith("bearer "):
