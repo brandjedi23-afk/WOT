@@ -5604,9 +5604,38 @@ def run_agent_turn(user_text: str, state: AgentState) -> str:
             content = (msg.content or "").strip()
             tool_calls = getattr(msg, "tool_calls", None) or []
 
+            # --- NUEVO: persistir el assistant que dispara tool_calls ---
+            if tool_calls:
+                # Normaliza tool_calls a dicts serializables
+                tc_norm = []
+                for tc in tool_calls:
+                    if hasattr(tc, "model_dump"):
+                        tc = tc.model_dump()
+                    # Estructura esperada por Chat Completions:
+                    # {"id": "...", "type": "function", "function": {"name": "...", "arguments": "..."}}
+                    if isinstance(tc, dict):
+                        tc_norm.append(tc)
+                    else:
+                        tc_norm.append({
+                            "id": getattr(tc, "id", None),
+                            "type": "function",
+                            "function": {
+                                "name": getattr(getattr(tc, "function", None), "name", ""),
+                                "arguments": getattr(getattr(tc, "function", None), "arguments", "") or "{}",
+                            }
+                        })
+
+                # IMPORTANTE: este assistant debe ir ANTES de los mensajes role="tool"
+                state.history.append({
+                    "role": "assistant",
+                    "content": (msg.content or "") if msg.content else "",
+                    "tool_calls": tc_norm,
+                })
+                
             if content:
                 last_narration = content
-                state.history.append(_assistant_msg(content))
+                if not tool_calls:
+                    state.history.append(_assistant_msg(content))
 
             if not tool_calls:
                 # ✅ SIEMPRE: salida con formato fijo (aunque no haya tiradas)
