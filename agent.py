@@ -4813,33 +4813,25 @@ def _call_chat_with_retries(messages: List[dict], *, max_attempts: int = 4):
     raise RuntimeError(f"OPENAI_ERROR:OTHER | {last_err}") from last_err
 
 def _should_use_action_planner(user_text: str, canon: dict) -> bool:
-    """
-    Activa planner cuando hay combate / acciones encadenadas.
-    Heurística: combate activo, o palabras clave de ataques/casts, o conteos (x2, 3 disparos...).
-    """
     combat = canon.get("combat", {}) or {}
     if combat.get("active"):
         return True
 
     t = _norm(user_text or "")
 
-    # palabras clave comunes
-    kw = [
-        "ataque", "ataca", "ataques", "disparo", "disparos", "shoot", "attacks",
-        "castea", "lanza", "cast", "fire bolt", "sneak", "gwm", "sharpshooter",
-        "asalto", "turno", "round", "acciones", "action surge"
-    ]
-    if any(k in t for k in kw):
-        return True
+    # NO planner para comandos de control
+    if t in {"estado", "status", "reset", "avanza"}:
+        return False
 
-    # patrones de conteo
+    # Planner solo si hay señales claras de multi-acción
     if re.search(r"\b\d+\s*(ataques|disparos|attacks|shots)\b", t):
         return True
     if re.search(r"\bx\s*\d+\b", t):  # x2, x3
         return True
+    if any(k in t for k in ["sharpshooter", "gwm", "sneak attack", "ataque furtivo", "fire bolt"]):
+        return True
 
     return False
-
 
 def _canon_snapshot_for_planner(canon: dict, *, max_feats: int = 10) -> dict:
     """
@@ -5494,6 +5486,37 @@ def run_agent_turn(user_text: str, state: AgentState) -> str:
 
         if not state.history or state.history[0].get("role") != "system":
             state.history.insert(0, _system_msg())
+
+        # --- FAST PATH (sin OpenAI) ---
+        t0 = (user_text or "").strip().upper()
+
+        if t0 in {"ESTADO", "STATUS"}:
+            # Dump rápido (sin LLM). Puedes enriquecer con canon_get si quieres.
+            st = tool_scene_status()
+            out = format_turn_output(
+                ctx=ctx,
+                interpretation="Estado de sesión solicitado (sin LLM).",
+                narration=st,
+                options=["AVANZA", "RESET"],
+            )
+            state.history.append(_assistant_msg(out))
+            return out
+
+        if t0 == "RESET":
+            # Reset ligero de sesión: vacía history y escena; canon lo gestionas por tu endpoint /session/reset si prefieres.
+            state.history = []
+            state.scene = {"location": "", "current_scene": "", "recap": "", "open_threads": []}
+            state.flags = {"debug_mechanics": True}
+            state.module_progress = {"module_id": "", "chapter": "", "scene": "", "flags": []}
+
+            out = format_turn_output(
+                ctx=ctx,
+                interpretation="Sesión reiniciada (sin LLM).",
+                narration="OK. Estado en memoria de sesión reiniciado.",
+                options=["AVANZA", "ESTADO"],
+            )
+            state.history.append(_assistant_msg(out))
+            return out
 
         user_text = _preprocess_user_text(user_text)
         state.history.append(_user_msg(user_text))
